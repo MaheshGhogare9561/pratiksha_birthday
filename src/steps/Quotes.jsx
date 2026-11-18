@@ -21,20 +21,32 @@ export default function Quotes({ onNext, onBack }) {
   const [index, setIndex] = useState(0);
   const [exitDir, setExitDir] = useState(1);
   const [seen, setSeen] = useState(1);
+  const [round, setRound] = useState(0); // bumps on "read again" so cards re-animate
+  const isLast = index === n - 1;
 
   function advance(dir = 1) {
+    if (isLast) return; // the deck ends at the last quote — no looping
     setExitDir(dir);
-    setIndex((i) => i + 1);
+    setIndex((i) => Math.min(n - 1, i + 1));
     setSeen((s) => Math.min(n, s + 1));
     audio.chime([88], 0);
   }
 
-  // top three cards, top card last so it renders above the rest
-  const stack = [2, 1, 0].map((k) => ({ k, abs: index + k, q: quotes[(index + k) % n] }));
+  function restart() {
+    setExitDir(-1);
+    setRound((r) => r + 1);
+    setIndex(0);
+    audio.chime([84, 88], 0.08);
+  }
+
+  // up to three remaining cards, top card last so it renders above the rest
+  const stack = [2, 1, 0]
+    .filter((k) => index + k < n)
+    .map((k) => ({ k, abs: index + k, q: quotes[index + k] }));
 
   return (
     <section className="step quotes-step">
-      <StepHeader eyebrow="On friendship" title="Words that remind me of us" subtitle="Swipe the cards, or tap the arrow." />
+      <StepHeader eyebrow="On friendship" title="Words that remind me of us" subtitle={`Swipe through all ${n} cards, or tap the arrow.`} />
 
       <div className="deck" aria-live="polite">
         <AnimatePresence custom={exitDir}>
@@ -42,7 +54,7 @@ export default function Quotes({ onNext, onBack }) {
             const isTop = k === 0;
             return (
               <motion.figure
-                key={abs}
+                key={`${round}-${abs}`}
                 className={`quote-card ${isTop ? 'is-top' : ''}`}
                 style={{ background: CARD_THEMES[abs % CARD_THEMES.length], zIndex: 10 - k }}
                 custom={exitDir}
@@ -81,7 +93,7 @@ export default function Quotes({ onNext, onBack }) {
                 <blockquote>{q.text}</blockquote>
                 <figcaption>— {q.author}</figcaption>
                 <span className="quote-count">
-                  {(abs % n) + 1} / {n}
+                  {abs + 1} / {n}
                 </span>
               </motion.figure>
             );
@@ -90,15 +102,36 @@ export default function Quotes({ onNext, onBack }) {
       </div>
 
       <div className="deck-controls">
-        <motion.button
-          type="button"
-          className="round-btn"
-          onClick={() => advance(1)}
-          whileTap={{ scale: 0.9 }}
-          aria-label="Next quote"
-        >
-          →
-        </motion.button>
+        <AnimatePresence mode="wait" initial={false}>
+          {isLast ? (
+            <motion.div
+              key="end"
+              className="deck-end"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              <span>That’s all {n} 🤍</span>
+              <button type="button" className="btn btn-soft small" onClick={restart}>
+                ↺ Read them again
+              </button>
+            </motion.div>
+          ) : (
+            <motion.button
+              key="next"
+              type="button"
+              className="round-btn"
+              onClick={() => advance(1)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              whileTap={{ scale: 0.9 }}
+              aria-label="Next quote"
+            >
+              →
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       <StepNav onBack={onBack} onNext={onNext} ready={seen >= Math.min(4, n)} hint="Read a few more 💌" />

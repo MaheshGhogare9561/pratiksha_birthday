@@ -1074,8 +1074,17 @@ code {
 
 .deck-controls {
   margin-top: 46px;
+  min-height: 48px;
   display: flex;
   gap: 16px;
+}
+
+.deck-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 /* ───────────── Step 5 · Gallery ───────────── */
