@@ -11,6 +11,10 @@ export const config = {
   // Your name — shown at the end of the letter and in the footer
   fromName: 'Darshana',
 
+  // Background song (the file in /music) starts from this many seconds in — skips the intro.
+  // It also restarts from here each time it loops. Set to 0 to play from the beginning.
+  songStartAt: 25,
+
   // Optional: her new age, e.g. 23 → "Happy 23rd Birthday". Leave null to hide.
   age: null,
 

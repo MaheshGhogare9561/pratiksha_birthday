@@ -4,6 +4,8 @@
 // If the folder is empty, a soft music-box "Happy Birthday" is synthesised instead,
 // so the site always has music.
 
+import { config } from '../config';
+
 const songFiles = import.meta.glob('/music/*.{mp3,MP3,m4a,M4A,ogg,OGG,wav,WAV,aac,AAC}', {
   eager: true,
   query: '?url',
@@ -11,6 +13,8 @@ const songFiles = import.meta.glob('/music/*.{mp3,MP3,m4a,M4A,ogg,OGG,wav,WAV,aa
 });
 const songKey = Object.keys(songFiles).sort()[0];
 const SONG_URL = songKey ? songFiles[songKey] : null;
+// Seconds to skip at the start of the song (set in config.js) — also used on every repeat.
+const SONG_START = Math.max(0, Number(config.songStartAt) || 0);
 
 const FILE_VOLUME = 0.7;
 const SYNTH_VOLUME = 0.55;
@@ -219,10 +223,27 @@ class AudioEngine {
     if (ctx && ctx.state === 'suspended') ctx.resume();
 
     if (SONG_URL) {
-      const el = new Audio(SONG_URL);
-      el.loop = true;
+      // "#t=25" tells the browser to begin playback at 0:25
+      const el = new Audio(SONG_START ? `${SONG_URL}#t=${SONG_START}` : SONG_URL);
+      // The built-in loop always restarts at 0:00, so with a start offset we loop by hand.
+      el.loop = SONG_START === 0;
       el.preload = 'auto';
       el.volume = 0;
+      if (SONG_START) {
+        const startAt = () => (el.duration > SONG_START + 1 ? SONG_START : 0);
+        // fallback for any browser that ignores the #t= start time
+        el.addEventListener(
+          'loadedmetadata',
+          () => {
+            if (el.currentTime < startAt() - 1) el.currentTime = startAt();
+          },
+          { once: true }
+        );
+        el.addEventListener('ended', () => {
+          el.currentTime = startAt();
+          if (!this.muted && !document.hidden) el.play().catch(() => {});
+        });
+      }
       this.el = el;
       this.mode = 'file';
       el.play()
