@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { photos, hasRealPhotos } from '../lib/photos';
+import { isLoaded, loadImage, preloadPhotos } from '../lib/preload';
 import Portal from '../components/Portal';
 import StepHeader from '../components/StepHeader';
 import StepNav from '../components/StepNav';
@@ -14,16 +15,45 @@ function PhotoFace({ photo, large = false, className = '' }) {
       </div>
     );
   }
+  return large ? (
+    <ProgressiveImg photo={photo} className={className} />
+  ) : (
+    <FadeImg src={photo.thumb} alt={photo.caption} className={className} />
+  );
+}
+
+// Loads straight away (no lazy-loading) and fades in once ready. Photos that
+// were already preloaded in the background appear instantly with no fade.
+function FadeImg({ src, alt, className = '' }) {
+  const [ready, setReady] = useState(() => isLoaded(src));
   return (
     <img
-      className={className}
-      src={large ? photo.src : photo.thumb}
-      alt={photo.caption}
-      loading={large ? 'eager' : 'lazy'}
+      ref={(el) => {
+        if (el && !ready && el.complete && el.naturalWidth > 0) setReady(true);
+      }}
+      className={`fade-img ${ready ? 'is-loaded' : ''} ${className}`}
+      src={src}
+      alt={alt}
       decoding="async"
       draggable={false}
+      onLoad={() => setReady(true)}
     />
   );
+}
+
+// Full-screen viewer: shows the (already loaded) gallery-size copy at once,
+// then swaps in the sharp full-size version as soon as it's downloaded.
+function ProgressiveImg({ photo, className = '' }) {
+  const [src, setSrc] = useState(() => (isLoaded(photo.src) ? photo.src : photo.thumb));
+  useEffect(() => {
+    if (src === photo.src) return undefined;
+    let alive = true;
+    loadImage(photo.src).then(() => alive && setSrc(photo.src));
+    return () => {
+      alive = false;
+    };
+  }, [photo.src, src]);
+  return <img className={className} src={src} alt={photo.caption} decoding="async" draggable={false} />;
 }
 
 const slide = {
@@ -85,6 +115,13 @@ function Lightbox({ index, onClose, onPrev, onNext }) {
     const t = setTimeout(next, 3800);
     return () => clearTimeout(t);
   }, [playing, index, next]);
+
+  // get the photos either side ready, so swiping is instant
+  useEffect(() => {
+    const n = photos.length;
+    loadImage(photos[(index + 1) % n].src);
+    loadImage(photos[(index - 1 + n) % n].src);
+  }, [index]);
 
   return (
     <motion.div
@@ -159,6 +196,9 @@ export default function Gallery({ onNext, onBack }) {
   const close = useCallback(() => setOpen(null), []);
   const prev = useCallback(() => setOpen((i) => (i - 1 + n) % n), [n]);
   const next = useCallback(() => setOpen((i) => (i + 1) % n), [n]);
+
+  // normally already running since the first screen — this is just a safety net
+  useEffect(() => preloadPhotos(), []);
 
   return (
     <section className="step gallery-step">

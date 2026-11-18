@@ -1135,7 +1135,7 @@ code {
   flex: none;
   border-radius: 3px;
   overflow: hidden;
-  background: #222;
+  background: linear-gradient(135deg, #3a2240, #24142c);
 }
 
 .frame img,
@@ -1145,6 +1145,19 @@ code {
   object-fit: cover;
   object-position: 50% 30%;
   filter: sepia(0.15) saturate(1.1);
+}
+
+.frame img {
+  transition: opacity 0.5s ease;
+}
+
+/* photos fade in when they finish loading instead of popping in */
+.fade-img {
+  opacity: 0;
+}
+
+.fade-img.is-loaded {
+  opacity: 1;
 }
 
 @keyframes reel {
@@ -1209,7 +1222,8 @@ code {
   display: block;
   aspect-ratio: 1;
   overflow: hidden;
-  background: #eee;
+  /* soft tint shown for the split second before a photo appears */
+  background: linear-gradient(135deg, #f6e4ec, #e9e0f5);
 }
 
 .polaroid-photo img,
@@ -1218,7 +1232,7 @@ code {
   height: 100%;
   object-fit: cover;
   object-position: 50% 30%; /* faces usually sit in the upper part of portrait shots */
-  transition: transform 0.6s ease;
+  transition: transform 0.6s ease, opacity 0.5s ease;
 }
 
 .polaroid:hover .polaroid-photo img {

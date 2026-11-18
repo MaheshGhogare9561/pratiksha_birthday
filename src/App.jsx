@@ -3,6 +3,7 @@ import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import Background from './components/Background';
 import MusicToggle from './components/MusicToggle';
 import Progress from './components/Progress';
+import { preloadPhotos } from './lib/preload';
 import Welcome from './steps/Welcome';
 import Reveal from './steps/Reveal';
 import Cake from './steps/Cake';
@@ -57,6 +58,13 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [step]);
+
+  // Start fetching the gallery photos shortly after the first screen appears,
+  // so they're ready long before she reaches the Memories step.
+  useEffect(() => {
+    const t = setTimeout(preloadPhotos, 800);
+    return () => clearTimeout(t);
+  }, []);
 
   const { Component, key } = STEPS[step];
 
