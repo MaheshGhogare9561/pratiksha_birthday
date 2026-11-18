@@ -9,7 +9,7 @@ export const config = {
   name: 'Pratiksha',
 
   // Your name — shown at the end of the letter and in the footer
-  fromName: 'Your Bestie',
+  fromName: 'Darshana',
 
   // Optional: her new age, e.g. 23 → "Happy 23rd Birthday". Leave null to hide.
   age: null,
